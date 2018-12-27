@@ -33,7 +33,6 @@ a user can always inlcude this header */
 #include "azure_uamqp_c/sasl_server_io.h"
 #include "azure_uamqp_c/server_protocol_io.h"
 #include "azure_uamqp_c/session.h"
-#include "azure_uamqp_c/socket_listener.h"
 
 #endif /* UAMQP_H */
 

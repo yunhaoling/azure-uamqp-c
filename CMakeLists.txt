@@ -177,7 +177,6 @@ set(uamqp_h_files
     ./inc/azure_uamqp_c/sasl_server_io.h
     ./inc/azure_uamqp_c/server_protocol_io.h
     ./inc/azure_uamqp_c/session.h
-    ./inc/azure_uamqp_c/socket_listener.h
     ./inc/azure_uamqp_c/uamqp.h
 )
 
@@ -207,23 +206,9 @@ set(uamqp_c_files
     ./src/session.c
 )
 
-if(WIN32)
-    set(socketlistener_c_files
-        ./src/socket_listener_win32.c
-    )
-elseif(UNIX)
-    set(socketlistener_c_files
-        ./src/socket_listener_berkeley.c
-    )
-else()
-    set(socketlistener_c_files
-    )
-endif()
-
 add_library(uamqp
     ${uamqp_c_files}
     ${uamqp_h_files}
-    ${socketlistener_c_files}
     )
 setTargetBuildProperties(uamqp)
 

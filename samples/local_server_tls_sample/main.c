@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/platform.h"
+#include "azure_c_shared_utility/socket_listener.h"
 #include "azure_c_shared_utility/xio.h"
 #include "azure_uamqp_c/uamqp.h"
 #include "tls_server_io.h"
