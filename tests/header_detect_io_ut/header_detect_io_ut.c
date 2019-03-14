@@ -124,7 +124,7 @@ static int umocktypes_copy_const_SERVER_PROTOCOL_IO_CONFIG_ptr(SERVER_PROTOCOL_I
     *destination = (SERVER_PROTOCOL_IO_CONFIG*)umockalloc_malloc(sizeof(SERVER_PROTOCOL_IO_CONFIG));
     if (*destination == NULL)
     {
-        result = __FAILURE__;
+        result = MU_FAILURE;
     }
     else
     {

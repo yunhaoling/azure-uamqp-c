@@ -465,7 +465,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_amqp_value) != 0))\r\n            {\r\n                result = __FAILURE__;\r\n      " +
+            this.Write("_amqp_value) != 0))\r\n            {\r\n                result = MU_FAILURE;\r\n      " +
                     "      }\r\n");
             
             #line 89 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
@@ -838,7 +838,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_handle == NULL)\r\n    {\r\n        result = __FAILURE__;\r\n    }\r\n    else\r\n    {\r\n " +
+            this.Write("_handle == NULL)\r\n    {\r\n        result = MU_FAILURE;\r\n    }\r\n    else\r\n    {\r\n " +
                     "       AMQP_VALUE list_value = amqpvalue_get_inplace_described_value(value);\r\n  " +
                     "      if (list_value == NULL)\r\n        {\r\n            ");
             
@@ -855,14 +855,14 @@ namespace amqplib_generator
             #line default
             #line hidden
             this.Write(@"_handle);
-            result = __FAILURE__;
+            result = MU_FAILURE;
         }
         else
         {
             uint32_t list_item_count;
             if (amqpvalue_get_list_item_count(list_value, &list_item_count) != 0)
             {
-                result = __FAILURE__;
+                result = MU_FAILURE;
             }
             else
             {
@@ -991,7 +991,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_handle);\r\n                                result = __FAILURE__;\r\n               " +
+            this.Write("_handle);\r\n                                result = MU_FAILURE;\r\n               " +
                     "                 break;\r\n                            }\r\n");
             
             #line 219 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
@@ -1061,7 +1061,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_handle);\r\n                                result = __FAILURE__;\r\n               " +
+            this.Write("_handle);\r\n                                result = MU_FAILURE;\r\n               " +
                     "                 break;\r\n");
             
             #line 237 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
@@ -1214,7 +1214,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_handle);\r\n                                    result = __FAILURE__;\r\n           " +
+            this.Write("_handle);\r\n                                    result = MU_FAILURE;\r\n           " +
                     "                         break;\r\n                                }\r\n");
             
             #line 263 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
@@ -1283,7 +1283,7 @@ namespace amqplib_generator
             #line default
             #line hidden
             this.Write("                    else\r\n                    {\r\n                        result =" +
-                    " __FAILURE__;\r\n                    }\r\n");
+                    " MU_FAILURE;\r\n                    }\r\n");
             
             #line 285 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
                      } 
@@ -1409,7 +1409,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write(" == NULL)\r\n    {\r\n        result = __FAILURE__;\r\n    }\r\n    else\r\n    {\r\n        " +
+            this.Write(" == NULL)\r\n    {\r\n        result = MU_FAILURE;\r\n    }\r\n    else\r\n    {\r\n        " +
                     "uint32_t item_count;\r\n        ");
             
             #line 319 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
@@ -1558,7 +1558,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("                result = __FAILURE__;\r\n");
+            this.Write("                result = MU_FAILURE;\r\n");
             
             #line 343 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
                       } 
@@ -1686,7 +1686,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("                    result = __FAILURE__;\r\n");
+            this.Write("                    result = MU_FAILURE;\r\n");
             
             #line 366 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
                       } 
@@ -1871,7 +1871,7 @@ namespace amqplib_generator
             #line default
             #line hidden
             this.Write("                        if (amqpvalue_get_type(item_value) != AMQP_TYPE_NULL)\r\n  " +
-                    "                      {\r\n                            result = __FAILURE__;\r\n    " +
+                    "                      {\r\n                            result = MU_FAILURE;\r\n    " +
                     "                    }\r\n                        else\r\n                        {\r\n" +
                     "");
             
@@ -1966,7 +1966,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("                        result = __FAILURE__;\r\n");
+            this.Write("                        result = MU_FAILURE;\r\n");
             
             #line 424 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
                       } 
@@ -2003,7 +2003,7 @@ namespace amqplib_generator
             #line hidden
             this.Write(@"_value == NULL)
                             {
-                                result = __FAILURE__;
+                                result = MU_FAILURE;
                             }
                             else
                             {
@@ -2030,7 +2030,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_value);\r\n                                    result = __FAILURE__;\r\n            " +
+            this.Write("_value);\r\n                                    result = MU_FAILURE;\r\n            " +
                     "                    }\r\n                                else\r\n                   " +
                     "             {\r\n                                    if (amqpvalue_add_array_item" +
                     "(*");
@@ -2050,7 +2050,7 @@ namespace amqplib_generator
             #line hidden
             this.Write(@"_value);
                                         amqpvalue_destroy(single_amqp_value);
-                                        result = __FAILURE__;
+                                        result = MU_FAILURE;
                                     }
                                     else
                                     {
@@ -2084,7 +2084,7 @@ namespace amqplib_generator
             #line default
             #line hidden
             this.Write(@"_value);
-                                            result = __FAILURE__;
+                                            result = MU_FAILURE;
                                         }
                                         else
                                         {
@@ -2186,7 +2186,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write(" == NULL)\r\n    {\r\n        result = __FAILURE__;\r\n    }\r\n    else\r\n    {\r\n        " +
+            this.Write(" == NULL)\r\n    {\r\n        result = MU_FAILURE;\r\n    }\r\n    else\r\n    {\r\n        " +
                     "");
             
             #line 500 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
@@ -2317,7 +2317,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_amqp_value == NULL)\r\n        {\r\n            result = __FAILURE__;\r\n        }\r\n  " +
+            this.Write("_amqp_value == NULL)\r\n        {\r\n            result = MU_FAILURE;\r\n        }\r\n  " +
                     "      else\r\n        {\r\n            if (amqpvalue_set_composite_item(");
             
             #line 523 "E:\iot\azure-iot-sdk-c\uamqp\uamqp_generator\amqp_definitions_c.tt"
@@ -2339,7 +2339,7 @@ namespace amqplib_generator
             
             #line default
             #line hidden
-            this.Write("_amqp_value) != 0)\r\n            {\r\n                result = __FAILURE__;\r\n       " +
+            this.Write("_amqp_value) != 0)\r\n            {\r\n                result = MU_FAILURE;\r\n       " +
                     "     }\r\n            else\r\n            {\r\n                result = 0;\r\n          " +
                     "  }\r\n\r\n            amqpvalue_destroy(");
             

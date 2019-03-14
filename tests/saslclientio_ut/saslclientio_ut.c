@@ -372,7 +372,7 @@ static int umocktypes_copy_amqp_binary(amqp_binary* destination, const amqp_bina
         destination->bytes = (unsigned char*)my_gballoc_malloc(source->length);
         if (destination->bytes == NULL)
         {
-            result = __FAILURE__;
+            result = MU_FAILURE;
         }
         else
         {
@@ -458,7 +458,7 @@ static int umocktypes_copy_bool_ptr(bool** destination, const bool** source)
     *destination = (bool*)my_gballoc_malloc(sizeof(bool));
     if (*destination == NULL)
     {
-        result = __FAILURE__;
+        result = MU_FAILURE;
     }
     else
     {
