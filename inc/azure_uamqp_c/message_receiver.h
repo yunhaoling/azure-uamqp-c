@@ -37,6 +37,7 @@ MU_DEFINE_ENUM(MESSAGE_RECEIVER_STATE, MESSAGE_RECEIVER_STATE_VALUES)
     MOCKABLE_FUNCTION(, int, messagereceiver_get_received_message_id, MESSAGE_RECEIVER_HANDLE, message_receiver, delivery_number*, message_number);
     MOCKABLE_FUNCTION(, int, messagereceiver_send_message_disposition, MESSAGE_RECEIVER_HANDLE, message_receiver, const char*, link_name, delivery_number, message_number, AMQP_VALUE, delivery_state);
     MOCKABLE_FUNCTION(, void, messagereceiver_set_trace, MESSAGE_RECEIVER_HANDLE, message_receiver, bool, trace_on);
+	MOCKABLE_FUNCTION(, int, get_message_state, MESSAGE_RECEIVER_HANDLE, message_receiver, bool, trace_on);
 
 #ifdef __cplusplus
 }

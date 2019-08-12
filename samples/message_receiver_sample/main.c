@@ -12,19 +12,24 @@
 /* This sample connects to an Event Hub, authenticates using SASL PLAIN (key name/key) and then it received all messages for partition 0 */
 /* Replace the below settings with your own.*/
 
-#define EH_HOST "<<<Replace with your own EH host (like myeventhub.servicebus.windows.net)>>>"
-#define EH_KEY_NAME "<<<Replace with your own key name>>>"
-#define EH_KEY "<<<Replace with your own key>>>"
-#define EH_NAME "<<<Insert your event hub name here>>>"
-
 static AMQP_VALUE on_message_received(const void* context, MESSAGE_HANDLE message)
 {
     (void)context;
     (void)message;
 
-    (void)printf("Message received.\r\n");
+    (void)printf("Message received from 1.\r\n");
 
     return messaging_delivery_accepted();
+}
+
+static AMQP_VALUE on_message_received2(const void* context, MESSAGE_HANDLE message)
+{
+	(void)context;
+	(void)message;
+
+	(void)printf("Message received from 2.\r\n");
+
+	return messaging_delivery_accepted();
 }
 
 int main(int argc, char** argv)
@@ -34,8 +39,11 @@ int main(int argc, char** argv)
     XIO_HANDLE sasl_io = NULL;
     CONNECTION_HANDLE connection = NULL;
     SESSION_HANDLE session = NULL;
+	SESSION_HANDLE session2 = NULL;
     LINK_HANDLE link = NULL;
+	LINK_HANDLE link2 = NULL;
     MESSAGE_RECEIVER_HANDLE message_receiver = NULL;
+	MESSAGE_RECEIVER_HANDLE message_receiver2 = NULL;
 
     (void)argc;
     (void)argv;
@@ -49,6 +57,8 @@ int main(int argc, char** argv)
         size_t last_memory_used = 0;
         AMQP_VALUE source;
         AMQP_VALUE target;
+		AMQP_VALUE source2;
+		AMQP_VALUE target2;
         SASL_PLAIN_CONFIG sasl_plain_config;
         SASL_MECHANISM_HANDLE sasl_mechanism_handle;
         TLSIO_CONFIG tls_io_config;
@@ -86,6 +96,11 @@ int main(int argc, char** argv)
         /* set incoming window to 100 for the session */
         session_set_incoming_window(session, 100);
 
+		session2 = session_create(connection, NULL, NULL);
+
+		/* set incoming window to 100 for the session */
+		session_set_incoming_window(session2, 100);
+
         /* listen only on partition 0 */
         source = messaging_create_source("amqps://" EH_HOST "/" EH_NAME "/ConsumerGroups/$Default/Partitions/0");
         target = messaging_create_target("ingress-rx");
@@ -94,8 +109,60 @@ int main(int argc, char** argv)
         amqpvalue_destroy(source);
         amqpvalue_destroy(target);
 
+		/* listten also on partition 1*/
+		source2 = messaging_create_source("amqps://" EH_HOST "/" EH_NAME "/ConsumerGroups/$Default/Partitions/1");
+		target2 = messaging_create_target("ingress-rx2");
+		link2 = link_create(session2, "receiver-link", role_receiver, source2, target2);
+		link_set_rcv_settle_mode(link2, receiver_settle_mode_first);
+		amqpvalue_destroy(source2);
+		amqpvalue_destroy(target2);
+
         /* create a message receiver */
         message_receiver = messagereceiver_create(link, NULL, NULL);
+		message_receiver2 = messagereceiver_create(link2, NULL, NULL);
+
+		int open_res1 = messagereceiver_open(message_receiver, on_message_received, message_receiver);
+		int open_res2 = messagereceiver_open(message_receiver2, on_message_received2, message_receiver2);
+
+		if (message_receiver == NULL || open_res1 != 0) {
+			(void)printf("Cannot open the message receiver1.");
+			return -1;
+		}
+
+		if (message_receiver2 == NULL || open_res2 != 0) {
+			(void)printf("Cannot open the message receiver2.");
+			return -2;
+		}
+
+		int state = 0;
+		int state2 = 0;
+		do {
+			connection_dowork(connection);
+			state = get_message_state(message_receiver, false);
+			state2 = get_message_state(message_receiver2, false);
+			printf("state1: %d, state2: %d\n", state, state2);
+		} while (state != 2 || state2 != 2);
+
+		bool keep_running = true;
+		while (keep_running)
+		{
+			size_t current_memory_used;
+			size_t maximum_memory_used;
+
+			current_memory_used = gballoc_getCurrentMemoryUsed();
+			maximum_memory_used = gballoc_getMaximumMemoryUsed();
+
+			connection_dowork(connection);
+
+			if (current_memory_used != last_memory_used)
+			{
+				(void)printf("Current memory usage:%lu (max:%lu)\r\n", (unsigned long)current_memory_used, (unsigned long)maximum_memory_used);
+				last_memory_used = current_memory_used;
+			}
+		}
+
+		result = 0;
+		/*
         if ((message_receiver == NULL) ||
             (messagereceiver_open(message_receiver, on_message_received, message_receiver) != 0))
         {
@@ -104,15 +171,23 @@ int main(int argc, char** argv)
         }
         else
         {
+			int state = 0;
+			do {
+				connection_dowork(connection);
+				state = get_message_state(message_receiver, false);
+				printf("state: %d\n", state);
+			} while (state != 2);
+
             bool keep_running = true;
             while (keep_running)
             {
                 size_t current_memory_used;
                 size_t maximum_memory_used;
-                connection_dowork(connection);
 
                 current_memory_used = gballoc_getCurrentMemoryUsed();
                 maximum_memory_used = gballoc_getMaximumMemoryUsed();
+
+				connection_dowork(connection);
 
                 if (current_memory_used != last_memory_used)
                 {
@@ -123,9 +198,12 @@ int main(int argc, char** argv)
 
             result = 0;
         }
+		*/
 
         messagereceiver_destroy(message_receiver);
         link_destroy(link);
+		messagereceiver_destroy(message_receiver2);
+		link_destroy(link2);
         session_destroy(session);
         connection_destroy(connection);
         platform_deinit();

@@ -528,3 +528,32 @@ void messagereceiver_set_trace(MESSAGE_RECEIVER_HANDLE message_receiver, bool tr
         (void)trace_on;
     }
 }
+
+int get_message_state(MESSAGE_RECEIVER_HANDLE message_receiver, bool trace_on)
+{
+	if (message_receiver == NULL)
+	{
+		LogError("NULL message_receiver");
+	}
+	else
+	{
+		/* No tracing is yet implemented for message receiver */
+		(void)trace_on;
+	}
+
+	switch (message_receiver->message_receiver_state)
+	{
+		case MESSAGE_RECEIVER_STATE_IDLE:
+			return 0;
+		case MESSAGE_RECEIVER_STATE_OPENING:
+			return 1;
+		case MESSAGE_RECEIVER_STATE_OPEN:
+			return 2;
+		case MESSAGE_RECEIVER_STATE_CLOSING:
+			return 3;
+		case MESSAGE_RECEIVER_STATE_ERROR:
+			return 4;
+		default:
+			return -1;
+	}
+}
