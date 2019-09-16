@@ -21,20 +21,26 @@
 #define EH_NAME "<<<Replace with your own EH name (like ingress_eh)>>>"
 
 static int rec[32] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+static size_t total_cnt = 0;
 static int DATA_AMOUNT = 10000;
 static int partition_cnt = 4;
 static int start_partition = 0;
 static int LINK_CREDIT = 300;
+static size_t TARGET_TOTAL_AMOUNT = 0;
 MESSAGE_RECEIVER_HANDLE* receiver_handlers;
 CONNECTION_HANDLE* connect_handlers;
 HANDLE *thread_handler;
+
+static int MULTIPLE_THREAD = 0;
+static int CONNECTION_MODE = 0; // 0 for separate connection, 1 for multiple session on one connection, 2 for multiple links on one session
 
 static AMQP_VALUE on_message_received(const void* context, MESSAGE_HANDLE message)
 {
 	(void)message;
 	int p_id = *(int*)context;
 	rec[p_id]++;
-	(void)printf("Message received from :%d, total received: %d.\r\n", p_id, rec[p_id]);
+	total_cnt++;
+	// (void)printf("Message received from :%d, total received: %d.\r\n", p_id, rec[p_id]);
 	return messaging_delivery_accepted();
 }
 
@@ -118,6 +124,17 @@ static MESSAGE_RECEIVER_HANDLE create_receiver(CONNECTION_HANDLE connection, int
 	return message_receiver;
 }
 
+
+DWORD WINAPI pump_with_one_connection(LPVOID args) {
+	CONNECTION_HANDLE connection = (CONNECTION_HANDLE)args;
+
+	while (total_cnt < TARGET_TOTAL_AMOUNT) {
+		connection_dowork(connection);
+	}
+	//_endthread();
+	return 0;
+}
+
 DWORD WINAPI pump(LPVOID args) {
 	int partition_id = *(int *)args;
 	while (rec[partition_id] < DATA_AMOUNT) {
@@ -137,30 +154,67 @@ int main(int argc, char** argv)
 	// The third argument 10000 means the receivers will pump 10000 messages from each partition
 	// The forth argument 3000 means the link max credit
 
+	//char* start_position_str = "2";
+	//char* partition_cnt_str = "2";
+	//char* data_amount_str = "20000";
+	//char* link_credit_str = "3000";
+	// 50000
+
 	char* start_position_str = argv[1];
-	char* partition_cnt_str = argv[2];
+	char* partition_cnt_str =argv[2];
 	char* data_amount_str = argv[3];
 	char* link_credit_str = argv[4];
+	char* multi_thread_str = argv[5]; // 0 for single thread, 1 for mutiple thread
+	char* connection_mode_str = argv[6];
 
 	start_partition = atoi(start_position_str);
 	partition_cnt = atoi(partition_cnt_str);
 	DATA_AMOUNT = atoi(data_amount_str);
 	LINK_CREDIT = atoi(link_credit_str);
-	printf("start partition idx: %d, partition_cnt:%d, data_amout:%d, link_credit:%d\n", start_partition, partition_cnt, DATA_AMOUNT, LINK_CREDIT);
+	MULTIPLE_THREAD = atoi(multi_thread_str);
+	CONNECTION_MODE = atoi(connection_mode_str);
+	TARGET_TOTAL_AMOUNT = DATA_AMOUNT * partition_cnt;
+
+	printf("start partition idx: %d, partition_cnt:%d, data_amout:%d, link_credit:%d, connection_mode:%d\n", start_partition, partition_cnt, DATA_AMOUNT, LINK_CREDIT, CONNECTION_MODE);
 	int result = 0;
 
 	(void)argc;
 	(void)argv;
 
 	if (platform_init() != 0)
-	{
-		result = -1;
-	}
-	else
-	{
-		gballoc_init();
+		return -1;
 
-		receiver_handlers = malloc(sizeof(MESSAGE_RECEIVER_HANDLE) * partition_cnt);
+	gballoc_init();
+
+	time_t start_time;
+	time_t end_time;
+	time_t duration = 0;
+	receiver_handlers = malloc(sizeof(MESSAGE_RECEIVER_HANDLE) * partition_cnt);
+
+	if (CONNECTION_MODE == 1)
+	{
+		printf("Doing multiple session on one connection.\n");
+		CONNECTION_HANDLE connection = create_connection(0);
+		for (int i = 0; i < partition_cnt; i++) {
+			MESSAGE_RECEIVER_HANDLE receiver = create_receiver(connection, i + start_partition);
+			if (receiver == NULL)
+				return -1;
+			receiver_handlers[i] = receiver;
+		}
+
+		time(&start_time);
+		while (total_cnt < TARGET_TOTAL_AMOUNT) {
+			connection_dowork(connection);
+		}
+		time(&end_time);
+		duration = end_time - start_time;
+	}
+
+	if (CONNECTION_MODE == 2) {
+		printf("Doing multiple link on one session/link.\n");
+	}
+
+	if (CONNECTION_MODE == 0) {
 		connect_handlers = malloc(sizeof(CONNECTION_HANDLE) * partition_cnt);
 		for (int i = 0; i < partition_cnt; i++) {
 			CONNECTION_HANDLE connection = create_connection(i + start_partition);
@@ -171,34 +225,57 @@ int main(int argc, char** argv)
 			receiver_handlers[i] = receiver;
 		}
 
-		thread_handler = malloc(sizeof(HANDLE) * partition_cnt);
 
-		time_t start_time;
-		time_t end_time;
-		time(&start_time);
-		for (int i = 0; i < partition_cnt; i++) {
-			int* partition = malloc(sizeof(int));
-			*partition = (i + start_partition);
-			thread_handler[i] = CreateThread(
-				NULL,
-				0,
-				pump,
-				partition,
-				0,
-				NULL);
+		if (MULTIPLE_THREAD) {
+			printf("Starting the multi-thread version\n");
+			thread_handler = malloc(sizeof(HANDLE) * partition_cnt);
+
+			time(&start_time);
+			for (int i = 0; i < partition_cnt; i++) {
+				int* partition = malloc(sizeof(int));
+				*partition = (i + start_partition);
+				thread_handler[i] = CreateThread(
+					NULL,
+					0,
+					pump,
+					partition,
+					0,
+					NULL);
+			}
+
+			WaitForMultipleObjects(partition_cnt, thread_handler, TRUE, INFINITE);
+			time(&end_time);
+			duration = end_time - start_time;
 		}
-
-		WaitForMultipleObjects(partition_cnt, thread_handler, TRUE, INFINITE);
-
-		time(&end_time);
-		time_t duration = end_time - start_time;
-		float msg_per_s = DATA_AMOUNT * partition_cnt / (float)(duration);
-		printf("Total partition count: %d, Total time is: %lld\n, performance: %f", partition_cnt, duration, msg_per_s);
-
-		// TODO: dealloc handlers
-		platform_deinit();
-		gballoc_deinit();
+		else {
+			printf("Starting the single-thread version\n");
+			bool stop_flag = false;
+			time(&start_time);
+			while (!stop_flag) {
+				stop_flag = true;
+				for (int i = 0; i < partition_cnt; i++) {
+					if (rec[i + start_partition] < DATA_AMOUNT) {
+						connection_dowork(connect_handlers[i]);
+						stop_flag = false;
+					}
+				}
+			}
+			time(&end_time);
+			duration = end_time - start_time;
+		}
 	}
+		
+	size_t total_message = 0;
+	for (int i = 0; i < 32; i++) {
+		total_message += rec[i];
+	}
+
+	float msg_per_s = total_message / (float)(duration);
+	printf("Total partition count: %d, Total time is: %lld\n, performance: %f", partition_cnt, duration, msg_per_s);
+
+	// TODO: dealloc handlers
+	platform_deinit();
+	gballoc_deinit();
 
 	return result;
 }
