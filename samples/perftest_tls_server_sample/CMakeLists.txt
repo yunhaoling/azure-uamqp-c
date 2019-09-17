@@ -2,7 +2,9 @@
 #Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 add_executable(perftest_tls_server_sample
-	perftest_tls_server_sample.c)
+	perftest_tls_server_sample.c
+	tls_server_io_schannel.c
+)
 
 compileTargetAsC99(perftest_tls_server_sample)
 

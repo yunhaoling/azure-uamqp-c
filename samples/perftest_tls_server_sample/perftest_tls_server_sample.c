@@ -8,7 +8,9 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/platform.h"
 #include "azure_c_shared_utility/xio.h"
+#include "azure_c_shared_utility/socketio.h"
 #include "azure_c_shared_utility/tickcounter.h"
+#include "azure_c_shared_utility/tlsio.h"
 #include "azure_uamqp_c/uamqp.h"
 #include "tls_server_io.h"
 
@@ -24,6 +26,7 @@ static unsigned char* cert_buffer;
 static size_t cert_size;
 
 bool keep_running = true;
+
 
 typedef struct SOCKETIO_INFO {
 	XIO_HANDLE socket_io;
@@ -43,7 +46,7 @@ typedef struct TLSIO_INFO {
 } TLSIO_CONTEXT;
 
 SOCKETIO_CONTEXT* all_io_context;
-TLSIO_CONTEXT* all_io_context;
+TLSIO_CONTEXT* all_tlsio_context;
 
 DWORD WINAPI pump(LPVOID args) {
 
@@ -121,18 +124,21 @@ static void on_socket_accepted(void* context, const IO_INTERFACE_DESCRIPTION* in
 	tls_server_io_config.certificate_size = cert_size;
 	tls_server_io_config.underlying_io_interface = interface_description;
 	tls_server_io_config.underlying_io_parameters = io_parameters;
+	XIO_HANDLE tls_io = xio_create(tls_server_io_get_interface_description(), &tls_server_io_config);
 
-	SOCKETIO_CONTEXT* cur_context = &all_io_context[++client_cur_idx];
+	TLSIO_CONTEXT* cur_context = &all_tlsio_context[++client_cur_idx];
 	// init current context
 	cur_context->idx = client_cur_idx;
 	cur_context->total_received_bytes_in_past_period = 0;
 	cur_context->tick_counter = tickcounter_create();
 	cur_context->last_time = tickcounter_get_current_ms(cur_context->tick_counter, &(cur_context->last_time));
-	cur_context->socket_io = xio_create(interface_description, io_parameters);
+	cur_context->tls_io = tls_io;
 
-
-	xio_open(cur_context->socket_io, on_io_open_complete, cur_context, on_bytes_received, cur_context, on_io_error, NULL);
-	printf("get a socket connect request from client\n");
+	if (xio_open(cur_context->tls_io, on_io_open_complete, cur_context, on_bytes_received, cur_context, on_io_error, cur_context) != 0) {
+		(void)printf("Error opening TLS IO.");
+		return;
+	}
+	printf("get a socket connect request from client. opened a tlsio for receiving bytes\n");
 }
 
 int main(int argc, char** argv)
@@ -151,11 +157,12 @@ int main(int argc, char** argv)
 
     gballoc_init();
 
-    socket_listener = socketlistener_create(5672);
+    socket_listener = socketlistener_create(5671);
 	if (socketlistener_start(socket_listener, on_socket_accepted, NULL) != 0)
 		return -1;
 
 	all_io_context = malloc(sizeof(SOCKETIO_CONTEXT) * MAX_ALLOWED_CLIENT_CNT);
+	all_tlsio_context = malloc(sizeof(TLSIO_CONTEXT) * MAX_ALLOWED_CLIENT_CNT);
 
     while (keep_running)
     {

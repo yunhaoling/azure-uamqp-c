@@ -7,6 +7,7 @@
 #include "azure_c_shared_utility/xio.h"
 #include "azure_c_shared_utility/socketio.h"
 #include "azure_c_shared_utility/platform.h"
+#include "azure_c_shared_utility/tlsio.h"
 
 static int open_complete = 0;
 static unsigned char done = 0;
@@ -100,28 +101,38 @@ int main(int argc, char** argv)
 	}
 
 	const IO_INTERFACE_DESCRIPTION* socketio_interface = socketio_get_interface_description();
-	if (socketio_interface == NULL)
+	const IO_INTERFACE_DESCRIPTION* tls_interface = platform_get_default_tlsio();
+	if (socketio_interface == NULL || tls_interface == NULL)
 	{
 		(void)printf("Error getting socketio interface description.");
 		return MU_FAILURE;
 	}
 
 
+	XIO_HANDLE* tlsios = malloc(sizeof(XIO_HANDLE) * CLIENT_CNT);
 	XIO_HANDLE* socketios = malloc(sizeof(XIO_HANDLE) * CLIENT_CNT);
+	//SOCKETIO_CONFIG* socketio_configs = malloc(sizeof(SOCKETIO_CONFIG) * CLIENT_CNT);
+	TLSIO_CONFIG* tlsio_configs = malloc(sizeof(TLSIO_CONFIG) * CLIENT_CNT);
 	SOCKETIO_CONFIG* socketio_configs = malloc(sizeof(SOCKETIO_CONFIG) * CLIENT_CNT);
 	for (int i = 0; i < CLIENT_CNT; i++) {
 		socketio_configs[i].hostname = hostname;
-		socketio_configs[i].port = 5672;
+		socketio_configs[i].port = 5671;
 		socketio_configs[i].accepted_socket = NULL;
 		socketios[i] = xio_create(socketio_interface, &socketio_configs[i]);
-		if (socketios[i] == NULL)
+
+		tlsio_configs[i].hostname = hostname;
+		tlsio_configs[i].port = 5671;
+		tlsio_configs[i].underlying_io_interface = socketio_get_interface_description();
+		tlsio_configs[i].underlying_io_parameters = (void*)(&socketio_configs[i]);
+		
+		tlsios[i] = xio_create(tls_interface, &tlsio_configs[i]);
+		if (tlsios[i] == NULL)
 		{
-			(void)printf("Error creating socket IO.");
+			(void)printf("Error creating tls IO.");
 			return MU_FAILURE;
 
 		}
 	}
-
 
 	to_send = malloc(sizeof(char) * BYTE_CNT);
 	for (int i = 0; i < BYTE_CNT - 1; i++) {
@@ -130,19 +141,17 @@ int main(int argc, char** argv)
 	to_send[BYTE_CNT]= '\0';
 
 	for (int i = 0; i < CLIENT_CNT; i++) {
-		if (xio_open(socketios[i], on_io_open_complete, socketios[i], on_io_bytes_received, socketios[i], on_io_error, socketios[i]) != 0)
+		if (xio_open(tlsios[i], on_io_open_complete, tlsios[i], on_io_bytes_received, tlsios[i], on_io_error, tlsios[i]) != 0)
 		{
 			(void)printf("Error opening socket IO.");
 			return MU_FAILURE;
 		}
 	}
 
-
 	while (!done)
 	{
 		// do nothing
 	}
-
 
 	// WaitForMultipleObjects(CLIENT_CNT, thread_handler, TRUE, INFINITE);
 
